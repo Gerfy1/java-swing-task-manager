@@ -18,12 +18,12 @@ public class TaskController {
         this.taskService = taskService;
     }
 
-    @GetMapping
+    @GetMapping("/getall")
     public ResponseEntity<List<Task>> getAll(){
         return ResponseEntity.ok(taskService.findAll());
     }
 
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<Task> create(@RequestBody TaskDTO taskDTO){
         return ResponseEntity.ok(taskService.create(taskDTO));
     }
