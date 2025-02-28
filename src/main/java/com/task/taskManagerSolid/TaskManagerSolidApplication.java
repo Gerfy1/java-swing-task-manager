@@ -12,7 +12,10 @@ public class TaskManagerSolidApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(TaskManagerSolidApplication.class, args);
 
-		SwingUtilities.invokeLater(() -> new TaskManagerGUI());
+		SwingUtilities.invokeLater(() -> {
+			TaskManagerGUI.collectCredentials();
+			new TaskManagerGUI();
+		});
 
 	}
 

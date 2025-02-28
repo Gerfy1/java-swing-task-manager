@@ -65,10 +65,11 @@ public class TaskManagerGUI extends JFrame {
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("Authorization", "Bearer " + token);
+            connection.setRequestProperty("Username", username);
+            connection.setRequestProperty("Authorization", "username=" + username + ", token=" + token);
             connection.setDoOutput(true);
 
-            String jsonInput = "{\"name\":\"" + taskName + "\", \"description\":\"Tarefa criada pela GUI\"}";
+            String jsonInput = "{\"username\":\"" + username + "\", \"token\":\"" + token + "\", \"name\":\"" + taskName + "\", \"description\":\"Tarefa criada pela GUI\"}";
             try (OutputStream os = connection.getOutputStream()) {
                 byte[] input = jsonInput.getBytes("utf-8");
                 os.write(input, 0 , input.length);
@@ -87,7 +88,9 @@ public class TaskManagerGUI extends JFrame {
     }
     public static void main(String[] args) {
         collectCredentials();
-        SwingUtilities.invokeLater(TaskManagerGUI::new);
+
+
+        SwingUtilities.invokeLater(() -> new TaskManagerGUI());
     }
 }
 
