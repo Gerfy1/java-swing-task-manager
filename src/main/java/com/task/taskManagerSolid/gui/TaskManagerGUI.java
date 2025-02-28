@@ -7,6 +7,8 @@ import java.awt.event.ActionListener;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 public class TaskManagerGUI extends JFrame {
 
@@ -52,7 +54,6 @@ public class TaskManagerGUI extends JFrame {
 
         int option = JOptionPane.showConfirmDialog(null, panel, "Task Manager", JOptionPane.OK_CANCEL_OPTION);
         if (option == JOptionPane.OK_OPTION) {
-            username = usernameField.getText();
             token = tokenField.getText();
         } else {
             System.exit(0);
@@ -65,11 +66,15 @@ public class TaskManagerGUI extends JFrame {
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("Username", username);
-            connection.setRequestProperty("Authorization", "username=" + username + ", token=" + token);
+
+            String auth = username + ":" + token;
+            String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+            connection.setRequestProperty("Authorization", "Basic " + encodedAuth);
+
             connection.setDoOutput(true);
 
-            String jsonInput = "{\"username\":\"" + username + "\", \"token\":\"" + token + "\", \"name\":\"" + taskName + "\", \"description\":\"Tarefa criada pela GUI\"}";
+
+            String jsonInput = "{\"title\":\"" + taskName + "\", \"description\":\"Tarefa criada pela GUI\"}";
             try (OutputStream os = connection.getOutputStream()) {
                 byte[] input = jsonInput.getBytes("utf-8");
                 os.write(input, 0 , input.length);

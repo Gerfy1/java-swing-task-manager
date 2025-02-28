@@ -13,6 +13,7 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
+
     private static final String SECRET_KEY = "00000000000000000000000000000000";
 
     private static final Key SECRET = Keys.hmacShaKeyFor(Base64.getEncoder().encode(SECRET_KEY.getBytes()));
@@ -27,6 +28,7 @@ public class JwtUtil {
 
     }
 
+
     public String extractUsername(String token) {
         return getClaims(token).getSubject();
 
@@ -34,6 +36,15 @@ public class JwtUtil {
 
     public Claims getClaims(String token) {
         return Jwts.parser().build().parseClaimsJws(token).getBody();
+    }
+
+    public boolean isTokenValid(String token) {
+        try {
+            Claims claims = getClaims(token);
+            return !claims.getExpiration().before(new Date());
+        } catch (Exception e) {
+            return false;
+        }
     }
 
 }
