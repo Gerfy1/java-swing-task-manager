@@ -9,40 +9,40 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class TaskManagerGUI extends JFrame {
-    public static void main (String[] args){
-        JFrame frame = new JFrame("Task Manager GUI");
-        frame.setSize(400, 200);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLayout(new FlowLayout(FlowLayout.CENTER));
+
+    public TaskManagerGUI(){
+
+        setTitle("Task Manager GUI");
+        setSize(400, 200);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new FlowLayout(FlowLayout.CENTER));
 
         JTextField taskField = new JTextField(20);
         JButton createButton = new JButton("Create Task");
 
-        createButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String taskName = taskField.getText();
-                if ( !taskName.isEmpty()){
-                    createTask(taskName);
-                } else {
-                    JOptionPane.showMessageDialog(frame, "Please enter a task name!");
-                }
+        createButton.addActionListener(e -> {
+            String taskName = taskField.getText();
+            if (!taskName.isEmpty()) {
+                createTask(taskName);
+            } else {
+                JOptionPane.showMessageDialog(this, "Please enter a task name!");
             }
         });
 
-        frame.add(new JLabel("Task Name:"));
-        frame.add(taskField);
-        frame.add(createButton);
+        add(new JLabel("Task Name:"));
+        add(taskField);
+        add(createButton);
 
-        frame.setVisible(true);
+        pack();
+        setVisible(true);
 
     }
 
     public static void createTask(String taskName){
         try{
-            URL url = new URL("http://localhost:8081/taks/create");
+            URL url = new URL("http://localhost:8081/tasks/create");
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("Post");
+            connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setDoOutput(true);
 
@@ -63,4 +63,8 @@ public class TaskManagerGUI extends JFrame {
             JOptionPane.showMessageDialog(null , "Erro ao conectar a API!");
         }
     }
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(TaskManagerGUI::new);
+    }
 }
+
