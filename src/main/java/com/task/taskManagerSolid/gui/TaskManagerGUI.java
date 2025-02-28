@@ -6,11 +6,11 @@ import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -26,6 +26,7 @@ public class TaskManagerGUI extends JFrame {
 
     private static String username;
     private static String token;
+    private static JTable taskTable;
 
     public TaskManagerGUI(){
 
@@ -160,9 +161,9 @@ public class TaskManagerGUI extends JFrame {
 
                 JSONArray taskArray = new JSONArray(response.toString());
 
-                String[] columnNames = {"Id", "Titulo", "Descrição", "Completada", "Criado em"};
+                String[] columnNames = {"Id", "Titulo", "Descrição", "Completada", "Criado em", "Ação"};
 
-                Object[][] data = new Object[taskArray.length()][5];
+                Object[][] data = new Object[taskArray.length()][6];
                 for (int i = 0; i< taskArray.length(); i++){
                     JSONObject task = taskArray.getJSONObject(i);
                     data[i][0] = task.getInt("id");
@@ -170,7 +171,7 @@ public class TaskManagerGUI extends JFrame {
                     data[i][2] = task.get("description");
 
                     boolean completed = task.getBoolean("completed");
-                    data[i][3] = completed ? "Sim" : "Não";
+                    data[i][3] = completed;
 
                     if (task.get("createdAt") instanceof String){
                         String createdAt = task.getString("createdAt");
@@ -183,31 +184,52 @@ public class TaskManagerGUI extends JFrame {
                         LocalDateTime dateTime = LocalDateTime.ofEpochSecond(timestamp/ 1000, 0, ZoneOffset.UTC);
                         String formattedDate = dateTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
                         data[i][4] = formattedDate;
+
                     }
+                    data[i][5] = "Concluir";
+
 
                 }
 
-                JTable taskTable = new JTable(data, columnNames);
+                DefaultTableModel model = new DefaultTableModel(data, columnNames) {
+                    @Override
+                    public Class<?> getColumnClass(int columnIndex) {
+                        if (columnIndex == 3) {
+                            return Boolean.class;
+                        }
+                        return super.getColumnClass(columnIndex);
+                    }
+                };
+                taskTable = new JTable(model);
                 taskTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+                taskTable.getColumnModel().getColumn(3).setCellRenderer(new CheckboxRenderer());
+                taskTable.getColumnModel().getColumn(3).setCellEditor(new DefaultCellEditor(new JCheckBox()));
                 taskTable.getColumnModel().getColumn(0).setPreferredWidth(50);
                 taskTable.getColumnModel().getColumn(1).setPreferredWidth(150);
                 taskTable.getColumnModel().getColumn(2).setPreferredWidth(300);
                 taskTable.getColumnModel().getColumn(3).setPreferredWidth(80);
                 taskTable.getColumnModel().getColumn(4).setPreferredWidth(200);
+                taskTable.getColumnModel().getColumn(5).setPreferredWidth(100);
                 JScrollPane scrollPane = new JScrollPane(taskTable);
                 taskTable.setPreferredScrollableViewportSize(new Dimension(800, 400));
                 JOptionPane.showMessageDialog(null, scrollPane, "Tarefas", JOptionPane.INFORMATION_MESSAGE);
 
-                taskTable.addMouseListener(new MouseAdapter() {
-                    @Override
-                    public void mouseClicked(MouseEvent e){
-                        int row  = taskTable.rowAtPoint(e.getPoint());
-                        if (row >= 0 ) {
-                            int taskId = (int) taskTable.getValueAt(row, 0);
-                            markTaskAsCompleted(taskId);
-                        }
+                taskTable.getModel().addTableModelListener(e -> {
+                    int row = e.getFirstRow();
+                    int column = e.getColumn();
+
+                    System.out.println("Alteração detectada - Linha: " + row + ", Coluna: " + column);
+
+
+                    if (column ==3){
+                        int taskId = (int) taskTable.getValueAt(row, 0);
+                        boolean completed = (boolean) taskTable.getValueAt(row, 3);
+                        System.out.println("Chamando API para marcar tarefa " + taskId + " como " + completed);
+                        taskTable.getCellEditor().stopCellEditing();
+                        markTaskAsCompleted(taskId, completed);
                     }
                 });
+
 
             } else {
                 JOptionPane.showMessageDialog(null, "Erro ao listar as Tarefas. Código: " +responseCode);
@@ -218,44 +240,67 @@ public class TaskManagerGUI extends JFrame {
         }
 
     }
-    public static void markTaskAsCompleted(int taskId) {
-        try {
-            URL url = new URL("http://localhost:8081/tasks/update" + taskId);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("PUT");
-            connection.setRequestProperty("Content-Type", "application/json");
+    public static void markTaskAsCompleted(int taskId, boolean completed) {
+            try {
+                URL url = new URL("http://localhost:8081/tasks/update/"+taskId);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("PUT");
+                connection.setRequestProperty("Content-Type", "application/json");
 
-            String auth = username + ":" + token;
-            String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
-            connection.setRequestProperty("Authorization", "Basic " + encodedAuth);
+                String auth = username + ":" + token;
+                String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+                connection.setRequestProperty("Authorization", "Basic " + encodedAuth);
 
-            JSONObject taskUpdate = new JSONObject();
-            taskUpdate.put("completed", true);
+                JSONObject taskUpdate = new JSONObject();
+                System.out.println("Enviando JSON: " + taskUpdate.toString());
+                taskUpdate.put("completed", completed);
 
-            connection.setDoOutput(true);
-            try (OutputStream os = connection.getOutputStream()) {
-                byte[] input = taskUpdate.toString().getBytes(StandardCharsets.UTF_8);
-                os.write(input, 0, input.length);
+                connection.setDoOutput(true);
+                try (OutputStream os = connection.getOutputStream()) {
+                    byte[] input = taskUpdate.toString().getBytes(StandardCharsets.UTF_8);
+                    os.write(input, 0, input.length);
+                }
+
+                int responseCode = connection.getResponseCode();
+                if (responseCode == 200) {
+                    System.out.println("Tarefa " + taskId + " atualizada para " + completed);
+                    JOptionPane.showMessageDialog(null, "Tarefa marcada como concluída com sucesso!");
+
+                    SwingUtilities.invokeLater(() -> {
+                        for (int i = 0; i < taskTable.getRowCount(); i++) {
+                            if ((int) taskTable.getValueAt(i, 0) == taskId) {
+                                taskTable.setValueAt(completed, i, 3);
+                                break;
+                            }
+                        }
+                    });
+                } else {
+                    System.out.println("Erro ao atualizar a tarefa " +taskId +"Codigo: " +responseCode);
+                    JOptionPane.showMessageDialog(null, "Erro ao atualizar a tarefa. Código: " + responseCode);
+                }
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Erro ao atualizar a tarefa!");
             }
-
-            int responseCode = connection.getResponseCode();
-            if (responseCode == 200) {
-                JOptionPane.showMessageDialog(null, "Tarefa marcada como concluída com sucesso!");
-                listTasks();
-            } else {
-                JOptionPane.showMessageDialog(null, "Erro ao atualizar a tarefa. Código: " + responseCode);
-            }
-
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Erro ao atualizar a tarefa!");
-        }
     }
     public static void main(String[] args) {
         collectCredentials();
 
 
         SwingUtilities.invokeLater(() -> new TaskManagerGUI());
+    }
+}
+class CheckboxRenderer extends JCheckBox implements TableCellRenderer{
+    public CheckboxRenderer(){
+        setHorizontalAlignment(JLabel.CENTER);
+    }
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        if ( value instanceof Boolean){
+            setSelected((Boolean)value);
+        }
+        return this;
     }
 }
 
