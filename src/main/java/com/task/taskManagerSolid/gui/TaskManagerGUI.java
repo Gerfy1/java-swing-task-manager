@@ -8,7 +8,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class TaskManagerGUI {
+public class TaskManagerGUI extends JFrame {
     public static void main (String[] args){
         JFrame frame = new JFrame("Task Manager GUI");
         frame.setSize(400, 200);
