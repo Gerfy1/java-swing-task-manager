@@ -1,5 +1,6 @@
 package com.task.taskManagerSolid.gui;
 
+import com.task.taskManagerSolid.entity.Task;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -8,12 +9,17 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 
 public class TaskManagerGUI extends JFrame {
@@ -50,6 +56,8 @@ public class TaskManagerGUI extends JFrame {
                 toggleButton.setBackground(new Color(200, 0, 0));
             }
         });
+
+
 
         JButton createButton = new JButton("Create Task");
         JButton listButton = new JButton("List Tasks");
@@ -164,12 +172,42 @@ public class TaskManagerGUI extends JFrame {
                     boolean completed = task.getBoolean("completed");
                     data[i][3] = completed ? "Sim" : "Não";
 
-                    data[i][4] = task.get("createdAt");
+                    if (task.get("createdAt") instanceof String){
+                        String createdAt = task.getString("createdAt");
+                        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
+                        LocalDateTime dateTime = LocalDateTime.parse(createdAt, formatter);
+                        String formattedDate = dateTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
+                        data[i][4] = formattedDate;
+                    } else if (task.get("createdAt") instanceof Long){
+                        long timestamp = task.getLong("createdAt");
+                        LocalDateTime dateTime = LocalDateTime.ofEpochSecond(timestamp/ 1000, 0, ZoneOffset.UTC);
+                        String formattedDate = dateTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
+                        data[i][4] = formattedDate;
+                    }
+
                 }
 
                 JTable taskTable = new JTable(data, columnNames);
+                taskTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+                taskTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+                taskTable.getColumnModel().getColumn(1).setPreferredWidth(150);
+                taskTable.getColumnModel().getColumn(2).setPreferredWidth(300);
+                taskTable.getColumnModel().getColumn(3).setPreferredWidth(80);
+                taskTable.getColumnModel().getColumn(4).setPreferredWidth(200);
                 JScrollPane scrollPane = new JScrollPane(taskTable);
+                taskTable.setPreferredScrollableViewportSize(new Dimension(800, 400));
                 JOptionPane.showMessageDialog(null, scrollPane, "Tarefas", JOptionPane.INFORMATION_MESSAGE);
+
+                taskTable.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e){
+                        int row  = taskTable.rowAtPoint(e.getPoint());
+                        if (row >= 0 ) {
+                            int taskId = (int) taskTable.getValueAt(row, 0);
+                            markTaskAsCompleted(taskId);
+                        }
+                    }
+                });
 
             } else {
                 JOptionPane.showMessageDialog(null, "Erro ao listar as Tarefas. Código: " +responseCode);
@@ -179,6 +217,39 @@ public class TaskManagerGUI extends JFrame {
             JOptionPane.showMessageDialog(null, "Erro ao Conectar a API para listar as Tarefas!");
         }
 
+    }
+    public static void markTaskAsCompleted(int taskId) {
+        try {
+            URL url = new URL("http://localhost:8081/tasks/update" + taskId);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("PUT");
+            connection.setRequestProperty("Content-Type", "application/json");
+
+            String auth = username + ":" + token;
+            String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+            connection.setRequestProperty("Authorization", "Basic " + encodedAuth);
+
+            JSONObject taskUpdate = new JSONObject();
+            taskUpdate.put("completed", true);
+
+            connection.setDoOutput(true);
+            try (OutputStream os = connection.getOutputStream()) {
+                byte[] input = taskUpdate.toString().getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode == 200) {
+                JOptionPane.showMessageDialog(null, "Tarefa marcada como concluída com sucesso!");
+                listTasks();
+            } else {
+                JOptionPane.showMessageDialog(null, "Erro ao atualizar a tarefa. Código: " + responseCode);
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Erro ao atualizar a tarefa!");
+        }
     }
     public static void main(String[] args) {
         collectCredentials();
