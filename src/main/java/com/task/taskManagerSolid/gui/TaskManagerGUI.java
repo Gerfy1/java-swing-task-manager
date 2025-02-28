@@ -10,6 +10,9 @@ import java.net.URL;
 
 public class TaskManagerGUI extends JFrame {
 
+    private static String username;
+    private static String token;
+
     public TaskManagerGUI(){
 
         setTitle("Task Manager GUI");
@@ -38,12 +41,31 @@ public class TaskManagerGUI extends JFrame {
 
     }
 
+    public static void collectCredentials(){
+        JPanel panel = new JPanel(new GridLayout(3, 2));
+        JTextField usernameField = new JTextField(20);
+        JTextField tokenField = new JTextField(20);
+        panel.add(new JLabel("Username:"));
+        panel.add(usernameField);
+        panel.add(new JLabel("Token:"));
+        panel.add(tokenField);
+
+        int option = JOptionPane.showConfirmDialog(null, panel, "Task Manager", JOptionPane.OK_CANCEL_OPTION);
+        if (option == JOptionPane.OK_OPTION) {
+            username = usernameField.getText();
+            token = tokenField.getText();
+        } else {
+            System.exit(0);
+        }
+    }
+
     public static void createTask(String taskName){
         try{
             URL url = new URL("http://localhost:8081/tasks/create");
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("Authorization", "Bearer " + token);
             connection.setDoOutput(true);
 
             String jsonInput = "{\"name\":\"" + taskName + "\", \"description\":\"Tarefa criada pela GUI\"}";
@@ -64,6 +86,7 @@ public class TaskManagerGUI extends JFrame {
         }
     }
     public static void main(String[] args) {
+        collectCredentials();
         SwingUtilities.invokeLater(TaskManagerGUI::new);
     }
 }
