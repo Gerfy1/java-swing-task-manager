@@ -187,8 +187,14 @@
     
                         }
                     }
-    
+
                     DefaultTableModel model = new DefaultTableModel(data, columnNames) {
+
+                        @Override
+                        public boolean isCellEditable(int row, int column) {
+                            return column == 3;
+                        }
+
                         @Override
                         public Class<?> getColumnClass(int columnIndex) {
                             if (columnIndex == 3) {
@@ -199,6 +205,7 @@
                     };
                     taskTable = new JTable(model);
                     taskTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+                    taskTable.setDefaultEditor(Object.class, null);
                     taskTable.getColumnModel().getColumn(3).setCellRenderer(new CheckboxRenderer());
                     taskTable.getColumnModel().getColumn(3).setCellEditor(new DefaultCellEditor(new JCheckBox()));
                     taskTable.getColumnModel().getColumn(0).setPreferredWidth(50);
@@ -297,6 +304,16 @@
                 setSelected((Boolean)value);
             }
             return this;
+        }
+    }
+    class CheckboxEditor extends DefaultCellEditor {
+        public CheckboxEditor(JCheckBox checkBox) {
+            super(checkBox);
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            return ((JCheckBox) getComponent()).isSelected();
         }
     }
     
