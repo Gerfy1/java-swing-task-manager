@@ -1,4 +1,4 @@
-# task-manager-api-study
+# java-swing-task-manager-study
 
 Swing Task manager é um projeto para melhorar o aprendizado na criação de API's e interface com Java Swing (que já tinha curiosidades).
 
