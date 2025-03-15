@@ -5,7 +5,7 @@ Swing Task manager é um projeto para melhorar o aprendizado na criação de API
 - Adicionar eventos
 - Modificar eventos
 - Deletar eventos
-- Vincular lembretes
+- Vincular lembretes (e-mail)
 # ScreenShots
 ![](https://i.imgur.com/1RCTH8u.png)
 ![](https://i.imgur.com/qd7uFs7.png)
